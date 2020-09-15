@@ -7,7 +7,7 @@ import (
 )
 
 func TestCorrectAuthToken(test *testing.T) {
-	request, error := http.NewRequest("GET", "/auth", nil)
+	request, error := http.NewRequest("GET", "/api/v1/auth", nil)
 	if error != nil {
 		test.Fatal(error)
 	}
@@ -25,7 +25,7 @@ func TestCorrectAuthToken(test *testing.T) {
 }
 
 func TestNoAuthToken(test *testing.T) {
-	request, error := http.NewRequest("GET", "/auth", nil)
+	request, error := http.NewRequest("GET", "/api/v1/auth", nil)
 	if error != nil {
 		test.Fatal(error)
 	}
@@ -49,7 +49,7 @@ func TestNoAuthToken(test *testing.T) {
 }
 
 func TestInvalidAuthToken(test *testing.T) {
-	request, error := http.NewRequest("GET", "/auth", nil)
+	request, error := http.NewRequest("GET", "/api/v1/auth", nil)
 	if error != nil {
 		test.Fatal(error)
 	}
