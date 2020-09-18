@@ -18,8 +18,6 @@ func Auth(next http.Handler) http.Handler {
 			return
 		}
 
-		writer.WriteHeader(http.StatusOK)
-
 		next.ServeHTTP(writer, request)
 	})
 }

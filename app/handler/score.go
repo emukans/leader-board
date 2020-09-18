@@ -14,15 +14,18 @@ type scorePayload struct {
 }
 
 func Score(writer http.ResponseWriter, request *http.Request) {
-	writer.WriteHeader(http.StatusNoContent)
+	if request.Method != "POST" {
+		http.Error(writer, "Method is not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
-	db, error := sql.Open("sqlite3", "../../db/leader_board.db")
-	if error != nil {
-		panic(error)
+	db, err := sql.Open("sqlite3", "../../db/leader_board.db")
+	if err != nil {
+		panic(err)
 	}
 
 	var payload scorePayload
-	err := json.NewDecoder(request.Body).Decode(&payload)
+	err = json.NewDecoder(request.Body).Decode(&payload)
 	if err != nil {
 		panic(err)
 	}
@@ -31,4 +34,6 @@ func Score(writer http.ResponseWriter, request *http.Request) {
 		Name:  payload.name,
 		Score: payload.score,
 	}.Save(db)
+
+	writer.WriteHeader(http.StatusNoContent)
 }

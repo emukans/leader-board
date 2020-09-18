@@ -71,6 +71,27 @@ func TestFailedAuth(test *testing.T) {
 	}
 }
 
+func TestWrongHTTPMethod(test *testing.T) {
+	methodList := []string {"GET", "PATCH", "DELETE", "HEAD"}
+	for _, method := range methodList {
+		request, error := http.NewRequest(method, "/api/v1/player/score", nil)
+		if error != nil {
+			test.Fatal(error)
+		}
+
+		request.Header.Add("Authorisation", "Bearer 123")
+		requestRecorder := httptest.NewRecorder()
+		handler := middleware.Auth(http.HandlerFunc(Score))
+
+		handler.ServeHTTP(requestRecorder, request)
+
+		if status := requestRecorder.Code; status != http.StatusMethodNotAllowed {
+			test.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusMethodNotAllowed)
+		}
+	}
+}
+
 func cleanTestUser(db *sql.DB) {
 	scoreList := model.FindByName("foo", db)
 	if len(scoreList) > 0 {
