@@ -7,7 +7,7 @@ import (
 
 func Auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func (writer http.ResponseWriter, request *http.Request) {
-		authHeader := request.Header.Get("Authorisation")
+		authHeader := request.Header.Get("Authorization")
 		splitToken := strings.Split(authHeader, "Bearer ")
 
 		if len(splitToken) != 2 || splitToken[1] == "" {

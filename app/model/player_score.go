@@ -30,11 +30,16 @@ func (receiver PlayerScore) Delete(db *sql.DB) sql.Result  {
 }
 
 
-
-func FindByName(name string, db *sql.DB) []PlayerScore  {
-	stmt, err := db.Prepare("SELECT id, name, score FROM player_score")
+func DeleteScores(db *sql.DB) {
+	_, err := db.Exec("DELETE FROM player_score")
 	checkErr(err)
-	rowList, err := stmt.Query()
+}
+
+func FindAllScores(db *sql.DB, limit int, offset int) []PlayerScore  {
+	stmt, err := db.Prepare("SELECT id, name, score FROM player_score ORDER BY score DESC LIMIT ? OFFSET ?")
+	checkErr(err)
+
+	rowList, err := stmt.Query(limit, offset)
 	checkErr(err)
 
 	var result []PlayerScore
@@ -47,8 +52,36 @@ func FindByName(name string, db *sql.DB) []PlayerScore  {
 	return result
 }
 
+func FindScoreCount(db *sql.DB) int {
+	rowList, err := db.Query("SELECT COUNT(*) FROM player_score")
+	checkErr(err)
+
+	var result int
+	for rowList.Next() {
+		rowList.Scan(&result)
+	}
+
+	return result
+}
+
+func FindScoreByName(name string, db *sql.DB) *PlayerScore  {
+	stmt, err := db.Prepare("SELECT id, name, score FROM player_score WHERE name = ?")
+	checkErr(err)
+	rowList, err := stmt.Query(name)
+	checkErr(err)
+
+	var result PlayerScore
+	for rowList.Next() {
+		var r row
+		rowList.Scan(&r.id, &r.name, &r.score)
+		result = PlayerScore{Id: r.id, Name: r.name, Score: r.score}
+	}
+
+	return &result
+}
+
 func (receiver PlayerScore) Save(db *sql.DB) sql.Result {
-	stmt, err := db.Prepare("INSERT OR REPLACE INTO player_score (name, score) VALUES (?, ?)")
+	stmt, err := db.Prepare("INSERT INTO player_score (name, score) VALUES ($1, $2) ON CONFLICT(name) DO UPDATE SET score = $2 WHERE name = $1")
 	checkErr(err)
 
 	result, err := stmt.Exec(receiver.Name, receiver.Score)

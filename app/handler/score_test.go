@@ -17,7 +17,7 @@ func TestSuccessInsert(test *testing.T) {
 	if error != nil {
 		test.Fatal(error)
 	}
-	cleanTestUser(db)
+	model.DeleteScores(db)
 
 	score := &model.PlayerScore{Name: "Foo", Score: 10}
 	payload, error := json.Marshal(score)
@@ -29,7 +29,7 @@ func TestSuccessInsert(test *testing.T) {
 		test.Fatal(error)
 	}
 
-	request.Header.Add("Authorisation", "Bearer 123")
+	request.Header.Add("Authorization", "Bearer 123")
 	requestRecorder := httptest.NewRecorder()
 	handler := http.HandlerFunc(Score)
 
@@ -40,12 +40,12 @@ func TestSuccessInsert(test *testing.T) {
 			status, http.StatusOK)
 	}
 
-	scoreList := model.FindByName("foo", db)
-	if len(scoreList) != 1 {
+	addedScore := model.FindScoreByName("foo", db)
+	if addedScore == nil {
 		test.Error("user is not inserted")
 	}
 
-	cleanTestUser(db)
+	model.DeleteScores(db)
 }
 
 func TestFailedAuth(test *testing.T) {
@@ -59,7 +59,7 @@ func TestFailedAuth(test *testing.T) {
 		test.Fatal(error)
 	}
 
-	request.Header.Add("Authorisation", "Bearer 123-fail")
+	request.Header.Add("Authorization", "Bearer 123-fail")
 	requestRecorder := httptest.NewRecorder()
 	handler := middleware.Auth(http.HandlerFunc(Score))
 
@@ -79,7 +79,7 @@ func TestWrongHTTPMethod(test *testing.T) {
 			test.Fatal(error)
 		}
 
-		request.Header.Add("Authorisation", "Bearer 123")
+		request.Header.Add("Authorization", "Bearer 123")
 		requestRecorder := httptest.NewRecorder()
 		handler := middleware.Auth(http.HandlerFunc(Score))
 
@@ -88,15 +88,6 @@ func TestWrongHTTPMethod(test *testing.T) {
 		if status := requestRecorder.Code; status != http.StatusMethodNotAllowed {
 			test.Errorf("handler returned wrong status code: got %v want %v",
 			status, http.StatusMethodNotAllowed)
-		}
-	}
-}
-
-func cleanTestUser(db *sql.DB) {
-	scoreList := model.FindByName("foo", db)
-	if len(scoreList) > 0 {
-		for _, score := range scoreList {
-			score.Delete(db)
 		}
 	}
 }
