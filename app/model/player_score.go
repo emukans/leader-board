@@ -4,18 +4,15 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+	"time"
 )
 
 type PlayerScore struct {
 	Id int
 	Name string
 	Score int
-}
-
-type row struct {
-	id int
-	name string
-	score int
+	UpdatedAt time.Time
+	CreatedAt time.Time
 }
 
 
@@ -35,18 +32,30 @@ func DeleteScores(db *sql.DB) {
 	checkErr(err)
 }
 
-func FindAllScores(db *sql.DB, limit int, offset int) []PlayerScore  {
-	stmt, err := db.Prepare("SELECT id, name, score FROM player_score ORDER BY score DESC LIMIT ? OFFSET ?")
-	checkErr(err)
+func FindAllScores(db *sql.DB, limit int, offset int, periodFrom time.Time) []PlayerScore  {
+	var rowList *sql.Rows
+	var err error
+	var stmt *sql.Stmt
 
-	rowList, err := stmt.Query(limit, offset)
-	checkErr(err)
+	if !periodFrom.IsZero() {
+		stmt, err = db.Prepare("SELECT id, name, score, updated_at, created_at FROM player_score WHERE updated_at >= ? ORDER BY score DESC LIMIT ? OFFSET ?")
+		checkErr(err)
+
+		rowList, err = stmt.Query(periodFrom, limit, offset)
+		checkErr(err)
+	} else {
+		stmt, err = db.Prepare("SELECT id, name, score, updated_at, created_at FROM player_score ORDER BY score DESC LIMIT ? OFFSET ?")
+		checkErr(err)
+
+		rowList, err = stmt.Query(limit, offset)
+		checkErr(err)
+	}
 
 	var result []PlayerScore
 	for rowList.Next() {
-		var r row
-		rowList.Scan(&r.id, &r.name, &r.score)
-		result = append(result, PlayerScore{Id: r.id, Name: r.name, Score: r.score})
+		var score PlayerScore
+		rowList.Scan(&score.Id, &score.Name, &score.Score, &score.UpdatedAt, &score.CreatedAt)
+		result = append(result, score)
 	}
 
 	return result
@@ -65,29 +74,37 @@ func FindScoreCount(db *sql.DB) int {
 }
 
 func FindScoreByName(name string, db *sql.DB) *PlayerScore  {
-	stmt, err := db.Prepare("SELECT id, name, score FROM player_score WHERE name = ?")
+	stmt, err := db.Prepare("SELECT id, name, score, updated_at, created_at FROM player_score WHERE name = ?")
 	checkErr(err)
 	rowList, err := stmt.Query(name)
 	checkErr(err)
 
 	var result PlayerScore
 	for rowList.Next() {
-		var r row
-		rowList.Scan(&r.id, &r.name, &r.score)
-		result = PlayerScore{Id: r.id, Name: r.name, Score: r.score}
+		rowList.Scan(&result.Id, &result.Name, &result.Score, &result.UpdatedAt, &result.CreatedAt)
 	}
 
 	return &result
 }
 
 func (receiver PlayerScore) Save(db *sql.DB) sql.Result {
-	stmt, err := db.Prepare("INSERT INTO player_score (name, score) VALUES ($1, $2) ON CONFLICT(name) DO UPDATE SET score = $2 WHERE name = $1 AND score < $2")
-	checkErr(err)
+	if receiver.UpdatedAt.IsZero() {
+		stmt, err := db.Prepare("INSERT INTO player_score (name, score) VALUES ($1, $2) ON CONFLICT(name) DO UPDATE SET score = $2 WHERE name = $1 AND score < $2")
+		checkErr(err)
 
-	result, err := stmt.Exec(receiver.Name, receiver.Score)
-	checkErr(err)
+		result, err := stmt.Exec(receiver.Name, receiver.Score)
+		checkErr(err)
 
-	return result
+		return result
+	} else {
+		stmt, err := db.Prepare("INSERT INTO player_score (name, score, updated_at) VALUES ($1, $2, $3)")
+		checkErr(err)
+
+		result, err := stmt.Exec(receiver.Name, receiver.Score, receiver.UpdatedAt)
+		checkErr(err)
+
+		return result
+	}
 }
 
 func BulkSave(scoreList []PlayerScore, db *sql.DB) sql.Result {

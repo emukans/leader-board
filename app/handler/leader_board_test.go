@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"testing"
+	"time"
 )
 
 
@@ -137,6 +138,72 @@ func TestMultiPageSeededDb(test *testing.T) {
 }
 
 
+func TestFailedPeriod(test *testing.T) {
+	request, err := http.NewRequest("GET", "/api/v1/leader-board", nil)
+	if err != nil {
+		test.Fatal(err)
+	}
+
+	request.Header.Add("Authorization", "Bearer 123")
+	requestRecorder := httptest.NewRecorder()
+	handler := middleware.Auth(http.HandlerFunc(LeaderBoard))
+
+	query := request.URL.Query()
+	query.Add("period", "wrong-period")
+	request.URL.RawQuery = query.Encode()
+
+	handler.ServeHTTP(requestRecorder, request)
+
+	if status := requestRecorder.Code; status != http.StatusBadRequest {
+		test.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusBadRequest)
+	}
+}
+
+func TestMonthlyPeriod(test *testing.T) {
+	db, err := sql.Open("sqlite3", "../../db/leader_board.db")
+	if err != nil {
+		test.Fatal(err)
+	}
+	limit := 15
+	oldScoreCount := 8
+	seedDb(db, limit)
+
+	defer model.DeleteScores(db)
+
+	request, err := http.NewRequest("GET", "/api/v1/leader-board", nil)
+	if err != nil {
+		test.Fatal(err)
+	}
+
+	request.Header.Add("Authorization", "Bearer 123")
+	requestRecorder := httptest.NewRecorder()
+	handler := middleware.Auth(http.HandlerFunc(LeaderBoard))
+
+	query := request.URL.Query()
+	query.Add("period", MonthlyLeaderBoardPeriod)
+	request.URL.RawQuery = query.Encode()
+
+	handler.ServeHTTP(requestRecorder, request)
+
+	if status := requestRecorder.Code; status != http.StatusOK {
+		test.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	jsonBody := leaderBoardResponse{}
+	err = json.NewDecoder(requestRecorder.Body).Decode(&jsonBody)
+
+	if err != nil {
+		test.Fatal(err)
+	}
+	expectedResultCount := limit - oldScoreCount
+	actualResultCount := len(jsonBody.Results)
+	if actualResultCount != expectedResultCount {
+		test.Errorf("handler returned wrong body: results should contain %d scores, but returned %d", expectedResultCount, actualResultCount)
+	}
+}
+
+
 func seedDb(db *sql.DB, limit int) {
 	model.DeleteScores(db)
 
@@ -144,34 +211,42 @@ func seedDb(db *sql.DB, limit int) {
 		{
 			Name:  "Cat",
 			Score: 1,
+			UpdatedAt: time.Now().AddDate(0, -1, 0),
 		},
 		{
 			Name:  "Dog",
 			Score: 12,
+			UpdatedAt: time.Now().AddDate(0, -1, 0),
 		},
 		{
 			Name:  "Dogge",
 			Score: 11,
+			UpdatedAt: time.Now().AddDate(0, -1, 0),
 		},
 		{
 			Name:  "Banye, The Omg Cat",
 			Score: 31,
+			UpdatedAt: time.Now().AddDate(0, -1, 0),
 		},
 		{
 			Name:  "Puss in boots",
 			Score: 63,
+			UpdatedAt: time.Now().AddDate(0, -1, 0),
 		},
 		{
 			Name:  "Beethoven",
 			Score: 12,
+			UpdatedAt: time.Now().AddDate(0, -1, 0),
 		},
 		{
 			Name:  "Toto",
 			Score: 155,
+			UpdatedAt: time.Now().AddDate(0, -1, 0),
 		},
 		{
 			Name:  "Hund von baskerville",
 			Score: 312,
+			UpdatedAt: time.Now().AddDate(0, -1, 0),
 		},
 		{
 			Name:  "Grumpy cat",
