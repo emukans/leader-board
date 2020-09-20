@@ -9,8 +9,8 @@ import (
 
 
 type scorePayload struct {
-	name string
-	score int
+	Name string `json:"name"`
+	Score int `json:"score"`
 }
 
 func Score(writer http.ResponseWriter, request *http.Request) {
@@ -31,8 +31,8 @@ func Score(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	model.PlayerScore{
-		Name:  payload.name,
-		Score: payload.score,
+		Name:  payload.Name,
+		Score: payload.Score,
 	}.Save(db)
 
 	writer.WriteHeader(http.StatusNoContent)

@@ -37,7 +37,7 @@ func TestSuccessInsert(test *testing.T) {
 
 	if status := requestRecorder.Code; status != http.StatusNoContent {
 		test.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
+			status, http.StatusNoContent)
 	}
 
 	addedScore := model.FindScoreByName("foo", db)
@@ -89,5 +89,81 @@ func TestWrongHTTPMethod(test *testing.T) {
 			test.Errorf("handler returned wrong status code: got %v want %v",
 			status, http.StatusMethodNotAllowed)
 		}
+	}
+}
+
+func TestScoreIsLessThanExisting(test *testing.T) {
+	db, error := sql.Open("sqlite3", "../../db/leader_board.db")
+	if error != nil {
+		test.Fatal(error)
+	}
+	model.DeleteScores(db)
+	defer model.DeleteScores(db)
+
+	score := model.PlayerScore{Name: "Foo", Score: 10}
+	score.Save(db)
+	score = model.PlayerScore{Name: "Foo", Score: 5}
+	payload, error := json.Marshal(&score)
+	if error != nil {
+		test.Fatal(error)
+	}
+
+	request, error := http.NewRequest("POST", "/api/v1/player/score", bytes.NewBuffer(payload))
+	if error != nil {
+		test.Fatal(error)
+	}
+
+	request.Header.Add("Authorization", "Bearer 123")
+	requestRecorder := httptest.NewRecorder()
+	handler := http.HandlerFunc(Score)
+
+	handler.ServeHTTP(requestRecorder, request)
+
+	if status := requestRecorder.Code; status != http.StatusNoContent {
+		test.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusNoContent)
+	}
+
+	addedScore := model.FindScoreByName("Foo", db)
+	if addedScore.Score != 10 {
+		test.Error("user score should not be updated")
+	}
+}
+
+func TestScoreIsGreaterThanExisting(test *testing.T) {
+	db, error := sql.Open("sqlite3", "../../db/leader_board.db")
+	if error != nil {
+		test.Fatal(error)
+	}
+	model.DeleteScores(db)
+	defer model.DeleteScores(db)
+
+	score := model.PlayerScore{Name: "Foo", Score: 10}
+	score.Save(db)
+	score = model.PlayerScore{Name: "Foo", Score: 15}
+	payload, error := json.Marshal(&score)
+	if error != nil {
+		test.Fatal(error)
+	}
+
+	request, error := http.NewRequest("POST", "/api/v1/player/score", bytes.NewBuffer(payload))
+	if error != nil {
+		test.Fatal(error)
+	}
+
+	request.Header.Add("Authorization", "Bearer 123")
+	requestRecorder := httptest.NewRecorder()
+	handler := http.HandlerFunc(Score)
+
+	handler.ServeHTTP(requestRecorder, request)
+
+	if status := requestRecorder.Code; status != http.StatusNoContent {
+		test.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusNoContent)
+	}
+
+	addedScore := model.FindScoreByName("Foo", db)
+	if addedScore.Score != 15 {
+		test.Error("user score should be updated")
 	}
 }

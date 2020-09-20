@@ -81,7 +81,7 @@ func FindScoreByName(name string, db *sql.DB) *PlayerScore  {
 }
 
 func (receiver PlayerScore) Save(db *sql.DB) sql.Result {
-	stmt, err := db.Prepare("INSERT INTO player_score (name, score) VALUES ($1, $2) ON CONFLICT(name) DO UPDATE SET score = $2 WHERE name = $1")
+	stmt, err := db.Prepare("INSERT INTO player_score (name, score) VALUES ($1, $2) ON CONFLICT(name) DO UPDATE SET score = $2 WHERE name = $1 AND score < $2")
 	checkErr(err)
 
 	result, err := stmt.Exec(receiver.Name, receiver.Score)
