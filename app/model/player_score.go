@@ -2,17 +2,16 @@ package model
 
 import (
 	"database/sql"
-	"fmt"
-	"strings"
 	"time"
 )
 
 type PlayerScore struct {
-	Id int
-	Name string
-	Score int
-	UpdatedAt time.Time
-	CreatedAt time.Time
+	Id int `json:"-"`
+	Name string `json:"name"`
+	Score int `json:"score"`
+	Rank int `json:"rank"`
+	UpdatedAt time.Time `json:"-"`
+	CreatedAt time.Time `json:"-"`
 }
 
 
@@ -105,20 +104,4 @@ func (receiver PlayerScore) Save(db *sql.DB) sql.Result {
 
 		return result
 	}
-}
-
-func BulkSave(scoreList []PlayerScore, db *sql.DB) sql.Result {
-	valuesString := make([]string, 0, len(scoreList))
-	valuesArg := make([]interface{}, 0, len(scoreList) * 2)
-	for _, score := range scoreList {
-		valuesString = append(valuesString, "(?, ?)")
-		valuesArg = append(valuesArg, score.Name)
-		valuesArg = append(valuesArg, score.Score)
-	}
-	query := fmt.Sprintf("INSERT OR REPLACE INTO player_score (name, score) VALUES %s", strings.Join(valuesString, ","))
-	stmt, err := db.Prepare(query)
-	result, err := stmt.Exec(valuesArg...)
-	checkErr(err)
-
-	return result
 }

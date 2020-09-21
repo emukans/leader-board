@@ -13,14 +13,8 @@ import (
 )
 
 
-type playerScore struct {
-	Name string `json:"name"`
-	Score int `json:"score"`
-	Rank int `json:"rank"`
-}
-
 type leaderBoardResponse struct {
-	Results []playerScore `json:"results"`
+	Results []model.PlayerScore `json:"results"`
 	NextPage int `json:"next_page"`
 }
 
@@ -31,14 +25,10 @@ const (
 
 
 func LeaderBoard(writer http.ResponseWriter, request *http.Request) {
-	if request.Method != "GET" {
-		http.Error(writer, "Method is not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	db, err := sql.Open("sqlite3", "../../db/leader_board.db")
+	db, err := sql.Open("sqlite3", model.DBPath)
 	if err != nil {
-		panic(err)
+		handleInternalErr(err, writer)
+		return
 	}
 
 	pageNumber, err := parsePageNumber(request)
@@ -47,26 +37,21 @@ func LeaderBoard(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	var period string
-	period, err = parsePeriod(request)
+	var periodFrom time.Time
+	periodFrom, err = parsePeriod(request)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
-	}
-
-	var periodFrom time.Time
-	if period == MonthlyLeaderBoardPeriod {
-		periodFrom = time.Now().AddDate(0, -1, 0)
 	}
 
 	limit := 10
 	offset := (pageNumber - 1) * limit
 
 	scoreList := model.FindAllScores(db, limit, offset, periodFrom)
-	var response leaderBoardResponse
+	response := leaderBoardResponse{Results: []model.PlayerScore{}, NextPage: 0}
 
 	for rank, score := range scoreList {
-		response.Results = append(response.Results, playerScore{
+		response.Results = append(response.Results, model.PlayerScore{
 			Name:  score.Name,
 			Score: score.Score,
 			Rank:  offset + rank + 1,
@@ -76,21 +61,18 @@ func LeaderBoard(writer http.ResponseWriter, request *http.Request) {
 	scoreCount := model.FindScoreCount(db)
 
 	if scoreCount > (offset + limit) {
-		pageNumber += 1
-	} else {
-		pageNumber = 0
+		response.NextPage = pageNumber + 1
 	}
-	response.NextPage = pageNumber
 
 	writer.Header().Set("Content-Type", "application/json")
 	payload, err := json.Marshal(response)
 	if err != nil {
-		panic(err)
+		handleInternalErr(err, writer)
+		return
 	}
 
-	writer.Write(payload)
-
 	writer.WriteHeader(http.StatusOK)
+	writer.Write(payload)
 }
 
 func parsePageNumber(request *http.Request) (int, error) {
@@ -107,17 +89,17 @@ func parsePageNumber(request *http.Request) (int, error) {
 	return pageNumber, nil
 }
 
-func parsePeriod(request *http.Request) (string, error) {
+func parsePeriod(request *http.Request) (time.Time, error) {
 	periodParameter := request.URL.Query().Get("period")
 
-	if periodParameter == "" {
-		return "",  nil
+	var periodDate time.Time
+	var err error
+
+	if periodParameter == MonthlyLeaderBoardPeriod {
+		periodDate = time.Now().AddDate(0, -1, 0)
+	} else if periodParameter != "" && periodParameter != AllTimeLeaderBoardPeriod {
+		err = errors.New(fmt.Sprintf("Invalid period query parameter. Period should be either %s or %s", AllTimeLeaderBoardPeriod, MonthlyLeaderBoardPeriod))
 	}
 
-	switch periodParameter {
-	case AllTimeLeaderBoardPeriod, MonthlyLeaderBoardPeriod:
-		return periodParameter, nil
-	}
-
-	return "", errors.New(fmt.Sprintf("Invalid period query parameter. Period should be either %s or %s", AllTimeLeaderBoardPeriod, MonthlyLeaderBoardPeriod))
+	return periodDate, err
 }

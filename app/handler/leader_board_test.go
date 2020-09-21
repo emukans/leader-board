@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	_ "github.com/mattn/go-sqlite3"
-	"leader-board/app/middleware"
 	"leader-board/app/model"
 	"net/http"
 	"net/http/httptest"
@@ -15,7 +14,7 @@ import (
 
 
 func TestEmptyResponse(test *testing.T) {
-	db, err := sql.Open("sqlite3", "../../db/leader_board.db")
+	db, err := sql.Open("sqlite3", model.DBPath)
 	if err != nil {
 		test.Fatal(err)
 	}
@@ -27,9 +26,8 @@ func TestEmptyResponse(test *testing.T) {
 		test.Fatal(err)
 	}
 
-	request.Header.Add("Authorization", "Bearer 123")
 	requestRecorder := httptest.NewRecorder()
-	handler := middleware.Auth(http.HandlerFunc(LeaderBoard))
+	handler := http.HandlerFunc(LeaderBoard)
 
 	handler.ServeHTTP(requestRecorder, request)
 
@@ -53,7 +51,7 @@ func TestEmptyResponse(test *testing.T) {
 }
 
 func TestOnePageSeededDb(test *testing.T) {
-	db, err := sql.Open("sqlite3", "../../db/leader_board.db")
+	db, err := sql.Open("sqlite3", model.DBPath)
 	if err != nil {
 		test.Fatal(err)
 	}
@@ -66,9 +64,8 @@ func TestOnePageSeededDb(test *testing.T) {
 		test.Fatal(err)
 	}
 
-	request.Header.Add("Authorization", "Bearer 123")
 	requestRecorder := httptest.NewRecorder()
-	handler := middleware.Auth(http.HandlerFunc(LeaderBoard))
+	handler := http.HandlerFunc(LeaderBoard)
 
 	handler.ServeHTTP(requestRecorder, request)
 
@@ -92,7 +89,7 @@ func TestOnePageSeededDb(test *testing.T) {
 }
 
 func TestMultiPageSeededDb(test *testing.T) {
-	db, err := sql.Open("sqlite3", "../../db/leader_board.db")
+	db, err := sql.Open("sqlite3", model.DBPath)
 	if err != nil {
 		test.Fatal(err)
 	}
@@ -108,9 +105,8 @@ func TestMultiPageSeededDb(test *testing.T) {
 			test.Fatal(err)
 		}
 
-		request.Header.Add("Authorization", "Bearer 123")
 		requestRecorder := httptest.NewRecorder()
-		handler := middleware.Auth(http.HandlerFunc(LeaderBoard))
+		handler := http.HandlerFunc(LeaderBoard)
 
 		query := request.URL.Query()
 		query.Add("page", strconv.Itoa(page))
@@ -144,9 +140,8 @@ func TestFailedPeriod(test *testing.T) {
 		test.Fatal(err)
 	}
 
-	request.Header.Add("Authorization", "Bearer 123")
 	requestRecorder := httptest.NewRecorder()
-	handler := middleware.Auth(http.HandlerFunc(LeaderBoard))
+	handler := http.HandlerFunc(LeaderBoard)
 
 	query := request.URL.Query()
 	query.Add("period", "wrong-period")
@@ -161,7 +156,7 @@ func TestFailedPeriod(test *testing.T) {
 }
 
 func TestMonthlyPeriod(test *testing.T) {
-	db, err := sql.Open("sqlite3", "../../db/leader_board.db")
+	db, err := sql.Open("sqlite3", model.DBPath)
 	if err != nil {
 		test.Fatal(err)
 	}
@@ -176,9 +171,8 @@ func TestMonthlyPeriod(test *testing.T) {
 		test.Fatal(err)
 	}
 
-	request.Header.Add("Authorization", "Bearer 123")
 	requestRecorder := httptest.NewRecorder()
-	handler := middleware.Auth(http.HandlerFunc(LeaderBoard))
+	handler := http.HandlerFunc(LeaderBoard)
 
 	query := request.URL.Query()
 	query.Add("period", MonthlyLeaderBoardPeriod)

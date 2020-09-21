@@ -13,7 +13,7 @@ import (
 )
 
 func TestSuccessInsert(test *testing.T) {
-	db, error := sql.Open("sqlite3", "../../db/leader_board.db")
+	db, error := sql.Open("sqlite3", model.DBPath)
 	if error != nil {
 		test.Fatal(error)
 	}
@@ -29,7 +29,6 @@ func TestSuccessInsert(test *testing.T) {
 		test.Fatal(error)
 	}
 
-	request.Header.Add("Authorization", "Bearer 123")
 	requestRecorder := httptest.NewRecorder()
 	handler := http.HandlerFunc(Score)
 
@@ -79,9 +78,8 @@ func TestWrongHTTPMethod(test *testing.T) {
 			test.Fatal(error)
 		}
 
-		request.Header.Add("Authorization", "Bearer 123")
 		requestRecorder := httptest.NewRecorder()
-		handler := middleware.Auth(http.HandlerFunc(Score))
+		handler := middleware.AllowedMethod(http.HandlerFunc(Score), http.MethodPost)
 
 		handler.ServeHTTP(requestRecorder, request)
 
@@ -93,7 +91,7 @@ func TestWrongHTTPMethod(test *testing.T) {
 }
 
 func TestScoreIsLessThanExisting(test *testing.T) {
-	db, error := sql.Open("sqlite3", "../../db/leader_board.db")
+	db, error := sql.Open("sqlite3", model.DBPath)
 	if error != nil {
 		test.Fatal(error)
 	}
@@ -113,7 +111,6 @@ func TestScoreIsLessThanExisting(test *testing.T) {
 		test.Fatal(error)
 	}
 
-	request.Header.Add("Authorization", "Bearer 123")
 	requestRecorder := httptest.NewRecorder()
 	handler := http.HandlerFunc(Score)
 
@@ -131,7 +128,7 @@ func TestScoreIsLessThanExisting(test *testing.T) {
 }
 
 func TestScoreIsGreaterThanExisting(test *testing.T) {
-	db, error := sql.Open("sqlite3", "../../db/leader_board.db")
+	db, error := sql.Open("sqlite3", model.DBPath)
 	if error != nil {
 		test.Fatal(error)
 	}
@@ -151,7 +148,6 @@ func TestScoreIsGreaterThanExisting(test *testing.T) {
 		test.Fatal(error)
 	}
 
-	request.Header.Add("Authorization", "Bearer 123")
 	requestRecorder := httptest.NewRecorder()
 	handler := http.HandlerFunc(Score)
 

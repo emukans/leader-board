@@ -8,26 +8,18 @@ import (
 )
 
 
-type scorePayload struct {
-	Name string `json:"name"`
-	Score int `json:"score"`
-}
-
 func Score(writer http.ResponseWriter, request *http.Request) {
-	if request.Method != "POST" {
-		http.Error(writer, "Method is not allowed", http.StatusMethodNotAllowed)
+	db, err := sql.Open("sqlite3", model.DBPath)
+	if err != nil {
+		handleInternalErr(err, writer)
 		return
 	}
 
-	db, err := sql.Open("sqlite3", "../../db/leader_board.db")
-	if err != nil {
-		panic(err)
-	}
-
-	var payload scorePayload
+	var payload model.PlayerScore
 	err = json.NewDecoder(request.Body).Decode(&payload)
 	if err != nil {
-		panic(err)
+		handleInternalErr(err, writer)
+		return
 	}
 
 	model.PlayerScore{
