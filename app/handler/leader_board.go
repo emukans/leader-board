@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,12 +24,6 @@ const (
 
 
 func LeaderBoard(writer http.ResponseWriter, request *http.Request) {
-	db, err := sql.Open("sqlite3", model.DBPath)
-	if err != nil {
-		handleInternalErr(err, writer)
-		return
-	}
-
 	pageNumber, err := parsePageNumber(request)
 	if err != nil {
 		http.Error(writer, "Page number is not valid", http.StatusBadRequest)
@@ -44,10 +37,14 @@ func LeaderBoard(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	limit := 10
+	limit, err := model.FindPageLimit()
+	if err != nil {
+		HandleInternalErr(err, writer)
+		return
+	}
 	offset := (pageNumber - 1) * limit
 
-	scoreList := model.FindAllScores(db, limit, offset, periodFrom)
+	scoreList := model.FindAllScores(limit, offset, periodFrom)
 	response := leaderBoardResponse{Results: []model.PlayerScore{}, NextPage: 0}
 
 	for rank, score := range scoreList {
@@ -58,7 +55,7 @@ func LeaderBoard(writer http.ResponseWriter, request *http.Request) {
 		})
 	}
 
-	scoreCount := model.FindScoreCount(db)
+	scoreCount := model.FindScoreCount()
 
 	if scoreCount > (offset + limit) {
 		response.NextPage = pageNumber + 1
@@ -67,7 +64,7 @@ func LeaderBoard(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("Content-Type", "application/json")
 	payload, err := json.Marshal(response)
 	if err != nil {
-		handleInternalErr(err, writer)
+		HandleInternalErr(err, writer)
 		return
 	}
 

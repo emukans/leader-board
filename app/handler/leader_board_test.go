@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"database/sql"
 	"encoding/json"
 	_ "github.com/mattn/go-sqlite3"
 	"leader-board/app/model"
@@ -14,12 +13,7 @@ import (
 
 
 func TestEmptyResponse(test *testing.T) {
-	db, err := sql.Open("sqlite3", model.DBPath)
-	if err != nil {
-		test.Fatal(err)
-	}
-
-	model.DeleteScores(db)
+	model.DeleteScores()
 
 	request, err := http.NewRequest("GET", "/api/v1/leader-board", nil)
 	if err != nil {
@@ -51,13 +45,9 @@ func TestEmptyResponse(test *testing.T) {
 }
 
 func TestOnePageSeededDb(test *testing.T) {
-	db, err := sql.Open("sqlite3", model.DBPath)
-	if err != nil {
-		test.Fatal(err)
-	}
 	limit := 5
-	seedDb(db, limit)
-	defer model.DeleteScores(db)
+	seedDb(limit)
+	defer model.DeleteScores()
 
 	request, err := http.NewRequest("GET", "/api/v1/leader-board", nil)
 	if err != nil {
@@ -89,13 +79,9 @@ func TestOnePageSeededDb(test *testing.T) {
 }
 
 func TestMultiPageSeededDb(test *testing.T) {
-	db, err := sql.Open("sqlite3", model.DBPath)
-	if err != nil {
-		test.Fatal(err)
-	}
 	limit := 15
-	seedDb(db, limit)
-	defer model.DeleteScores(db)
+	seedDb(limit)
+	defer model.DeleteScores()
 
 	page := 1
 
@@ -156,15 +142,11 @@ func TestFailedPeriod(test *testing.T) {
 }
 
 func TestMonthlyPeriod(test *testing.T) {
-	db, err := sql.Open("sqlite3", model.DBPath)
-	if err != nil {
-		test.Fatal(err)
-	}
 	limit := 15
 	oldScoreCount := 8
-	seedDb(db, limit)
+	seedDb(limit)
 
-	defer model.DeleteScores(db)
+	defer model.DeleteScores()
 
 	request, err := http.NewRequest("GET", "/api/v1/leader-board", nil)
 	if err != nil {
@@ -198,8 +180,8 @@ func TestMonthlyPeriod(test *testing.T) {
 }
 
 
-func seedDb(db *sql.DB, limit int) {
-	model.DeleteScores(db)
+func seedDb(limit int) {
+	model.DeleteScores()
 
 	scoreList := []model.PlayerScore {
 		{
@@ -272,7 +254,7 @@ func seedDb(db *sql.DB, limit int) {
 		}}
 
 	for _, score := range scoreList[:limit] {
-		score.Save(db)
+		score.Save()
 	}
 }
 

@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"leader-board/app/model"
 	"net/http"
 	"strings"
 )
@@ -13,7 +14,7 @@ func Auth(next http.Handler) http.Handler {
 		if len(splitToken) != 2 || splitToken[1] == "" {
 			writer.WriteHeader(http.StatusUnauthorized)
 			return
-		} else if splitToken[1] != "123" {
+		} else if authToken := model.FindAuthToken(); splitToken[1] != authToken {
 			writer.WriteHeader(http.StatusForbidden)
 			return
 		}

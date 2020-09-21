@@ -2,7 +2,6 @@ package handler
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/json"
 	_ "github.com/mattn/go-sqlite3"
 	"leader-board/app/middleware"
@@ -13,11 +12,7 @@ import (
 )
 
 func TestSuccessInsert(test *testing.T) {
-	db, error := sql.Open("sqlite3", model.DBPath)
-	if error != nil {
-		test.Fatal(error)
-	}
-	model.DeleteScores(db)
+	model.DeleteScores()
 
 	score := &model.PlayerScore{Name: "Foo", Score: 10}
 	payload, error := json.Marshal(score)
@@ -39,12 +34,12 @@ func TestSuccessInsert(test *testing.T) {
 			status, http.StatusNoContent)
 	}
 
-	addedScore := model.FindScoreByName("foo", db)
+	addedScore := model.FindScoreByName("foo")
 	if addedScore == nil {
 		test.Error("user is not inserted")
 	}
 
-	model.DeleteScores(db)
+	model.DeleteScores()
 }
 
 func TestFailedAuth(test *testing.T) {
@@ -91,15 +86,11 @@ func TestWrongHTTPMethod(test *testing.T) {
 }
 
 func TestScoreIsLessThanExisting(test *testing.T) {
-	db, error := sql.Open("sqlite3", model.DBPath)
-	if error != nil {
-		test.Fatal(error)
-	}
-	model.DeleteScores(db)
-	defer model.DeleteScores(db)
+	model.DeleteScores()
+	defer model.DeleteScores()
 
 	score := model.PlayerScore{Name: "Foo", Score: 10}
-	score.Save(db)
+	score.Save()
 	score = model.PlayerScore{Name: "Foo", Score: 5}
 	payload, error := json.Marshal(&score)
 	if error != nil {
@@ -121,22 +112,18 @@ func TestScoreIsLessThanExisting(test *testing.T) {
 			status, http.StatusNoContent)
 	}
 
-	addedScore := model.FindScoreByName("Foo", db)
+	addedScore := model.FindScoreByName("Foo")
 	if addedScore.Score != 10 {
 		test.Error("user score should not be updated")
 	}
 }
 
 func TestScoreIsGreaterThanExisting(test *testing.T) {
-	db, error := sql.Open("sqlite3", model.DBPath)
-	if error != nil {
-		test.Fatal(error)
-	}
-	model.DeleteScores(db)
-	defer model.DeleteScores(db)
+	model.DeleteScores()
+	defer model.DeleteScores()
 
 	score := model.PlayerScore{Name: "Foo", Score: 10}
-	score.Save(db)
+	score.Save()
 	score = model.PlayerScore{Name: "Foo", Score: 15}
 	payload, error := json.Marshal(&score)
 	if error != nil {
@@ -158,7 +145,7 @@ func TestScoreIsGreaterThanExisting(test *testing.T) {
 			status, http.StatusNoContent)
 	}
 
-	addedScore := model.FindScoreByName("Foo", db)
+	addedScore := model.FindScoreByName("Foo")
 	if addedScore.Score != 15 {
 		test.Error("user score should be updated")
 	}

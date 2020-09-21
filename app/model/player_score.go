@@ -15,8 +15,8 @@ type PlayerScore struct {
 }
 
 
-func (receiver PlayerScore) Delete(db *sql.DB) sql.Result  {
-	stmt, err := db.Prepare("DELETE FROM player_score WHERE id = ?")
+func (receiver PlayerScore) Delete() sql.Result  {
+	stmt, err := DB.Prepare("DELETE FROM player_score WHERE id = ?")
 	checkErr(err)
 
 	result, err := stmt.Exec(receiver.Id)
@@ -26,24 +26,24 @@ func (receiver PlayerScore) Delete(db *sql.DB) sql.Result  {
 }
 
 
-func DeleteScores(db *sql.DB) {
-	_, err := db.Exec("DELETE FROM player_score")
+func DeleteScores() {
+	_, err := DB.Exec("DELETE FROM player_score")
 	checkErr(err)
 }
 
-func FindAllScores(db *sql.DB, limit int, offset int, periodFrom time.Time) []PlayerScore  {
+func FindAllScores(limit int, offset int, periodFrom time.Time) []PlayerScore  {
 	var rowList *sql.Rows
 	var err error
 	var stmt *sql.Stmt
 
 	if !periodFrom.IsZero() {
-		stmt, err = db.Prepare("SELECT id, name, score, updated_at, created_at FROM player_score WHERE updated_at >= ? ORDER BY score DESC LIMIT ? OFFSET ?")
+		stmt, err = DB.Prepare("SELECT id, name, score, updated_at, created_at FROM player_score WHERE updated_at >= ? ORDER BY score DESC LIMIT ? OFFSET ?")
 		checkErr(err)
 
 		rowList, err = stmt.Query(periodFrom, limit, offset)
 		checkErr(err)
 	} else {
-		stmt, err = db.Prepare("SELECT id, name, score, updated_at, created_at FROM player_score ORDER BY score DESC LIMIT ? OFFSET ?")
+		stmt, err = DB.Prepare("SELECT id, name, score, updated_at, created_at FROM player_score ORDER BY score DESC LIMIT ? OFFSET ?")
 		checkErr(err)
 
 		rowList, err = stmt.Query(limit, offset)
@@ -60,8 +60,8 @@ func FindAllScores(db *sql.DB, limit int, offset int, periodFrom time.Time) []Pl
 	return result
 }
 
-func FindScoreCount(db *sql.DB) int {
-	rowList, err := db.Query("SELECT COUNT(*) FROM player_score")
+func FindScoreCount() int {
+	rowList, err := DB.Query("SELECT COUNT(*) FROM player_score")
 	checkErr(err)
 
 	var result int
@@ -72,8 +72,8 @@ func FindScoreCount(db *sql.DB) int {
 	return result
 }
 
-func FindScoreByName(name string, db *sql.DB) *PlayerScore  {
-	stmt, err := db.Prepare("SELECT id, name, score, updated_at, created_at FROM player_score WHERE name = ?")
+func FindScoreByName(name string) *PlayerScore  {
+	stmt, err := DB.Prepare("SELECT id, name, score, updated_at, created_at FROM player_score WHERE name = ?")
 	checkErr(err)
 	rowList, err := stmt.Query(name)
 	checkErr(err)
@@ -86,9 +86,9 @@ func FindScoreByName(name string, db *sql.DB) *PlayerScore  {
 	return &result
 }
 
-func (receiver PlayerScore) Save(db *sql.DB) sql.Result {
+func (receiver PlayerScore) Save() sql.Result {
 	if receiver.UpdatedAt.IsZero() {
-		stmt, err := db.Prepare("INSERT INTO player_score (name, score) VALUES ($1, $2) ON CONFLICT(name) DO UPDATE SET score = $2 WHERE name = $1 AND score < $2")
+		stmt, err := DB.Prepare("INSERT INTO player_score (name, score) VALUES ($1, $2) ON CONFLICT(name) DO UPDATE SET score = $2 WHERE name = $1 AND score < $2")
 		checkErr(err)
 
 		result, err := stmt.Exec(receiver.Name, receiver.Score)
@@ -96,7 +96,7 @@ func (receiver PlayerScore) Save(db *sql.DB) sql.Result {
 
 		return result
 	} else {
-		stmt, err := db.Prepare("INSERT INTO player_score (name, score, updated_at) VALUES ($1, $2, $3)")
+		stmt, err := DB.Prepare("INSERT INTO player_score (name, score, updated_at) VALUES ($1, $2, $3)")
 		checkErr(err)
 
 		result, err := stmt.Exec(receiver.Name, receiver.Score, receiver.UpdatedAt)

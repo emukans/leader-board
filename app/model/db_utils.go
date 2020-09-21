@@ -1,6 +1,7 @@
 package model
 
 import (
+	"database/sql"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -8,7 +9,15 @@ import (
 
 var (
 	DBPath = RootPath() + "/../db/leader_board.db"
+	DB = CreateConnection()
 )
+
+func CreateConnection() *sql.DB {
+	db, err := sql.Open("sqlite3", DBPath)
+	checkErr(err)
+
+	return db
+}
 
 
 func RootPath() string {
