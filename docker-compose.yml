@@ -1,0 +1,11 @@
+version: "3"
+
+services:
+  app:
+    build: .
+    image: app-image
+    restart: on-failure
+    volumes:
+    - ./db:/usr/src/app/db
+    ports:
+    - 8000:8000
