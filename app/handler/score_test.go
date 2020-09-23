@@ -3,7 +3,6 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
-	_ "github.com/mattn/go-sqlite3"
 	"leader-board/app/middleware"
 	"leader-board/app/model"
 	"net/http"

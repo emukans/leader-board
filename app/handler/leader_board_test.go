@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	_ "github.com/mattn/go-sqlite3"
 	"leader-board/app/model"
 	"net/http"
 	"net/http/httptest"

@@ -35,6 +35,19 @@ This project is build for demo purposes
    
    go run main.go
    ```
+   
+### (Optional) Seed the database
+* Using native setup, execute:
+    ```bash
+    go run main.go -seed
+  
+    # OR
+    ./leader-board -seed
+   ```
+* Using Docker setup (make sure that docker container is running), execute:
+    ```bash
+    docker-compose exec app leader-board -seed
+    ```
 
 ### Getting authorisation token
 

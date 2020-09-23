@@ -2,6 +2,7 @@ package model
 
 import (
 	"database/sql"
+	_ "github.com/mattn/go-sqlite3"
 	"path"
 	"path/filepath"
 	"runtime"
