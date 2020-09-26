@@ -10,6 +10,7 @@ RUN apk --update upgrade && \
 
 RUN go get .
 RUN go build -o leader-board .
+RUN go build -o seed db/seed/seed.go
 
 RUN apk del g++
 

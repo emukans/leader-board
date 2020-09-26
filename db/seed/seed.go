@@ -1,4 +1,4 @@
-package db
+package main
 
 import (
 	"encoding/json"
@@ -8,12 +8,12 @@ import (
 	"os"
 )
 
-func Seed() {
+func main() {
 	workingDir, err := os.Getwd()
 	if err != nil {
 		panic(err)
 	}
-	seedPath := workingDir + "/db/seed/player_score.json"
+	seedPath := workingDir + "/db/seed/fixtures/player_score.json"
 	jsonFile, err := os.Open(seedPath)
 	if err != nil {
 		panic(err)

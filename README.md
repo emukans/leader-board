@@ -39,14 +39,12 @@ This project is build for demo purposes
 ### (Optional) Seed the database
 * Using native setup, execute:
     ```bash
-    go run main.go -seed
-  
-    # OR
-    ./leader-board -seed
+    # From project root
+    go run db/seed/seed.go
    ```
 * Using Docker setup (make sure that docker container is running), execute:
     ```bash
-    docker-compose exec app leader-board -seed
+    docker-compose exec app ./seed
     ```
 
 ### Getting authorisation token
