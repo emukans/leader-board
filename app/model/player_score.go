@@ -54,7 +54,7 @@ func FindAllScores(limit int, offset int, periodFrom time.Time) ([]PlayerScore, 
 	}
 
 	if !periodFrom.IsZero() {
-		stmt, err = db.Prepare("SELECT DISTINCT(name) id, name, score, updated_at, created_at FROM player_score WHERE updated_at >= ? ORDER BY score DESC LIMIT ? OFFSET ?")
+		stmt, err = db.Prepare("SELECT id, name, score, updated_at, created_at FROM player_score WHERE updated_at >= ? GROUP BY name ORDER BY score DESC LIMIT ? OFFSET ?")
 		if err != nil {
 			return nil, err
 		}
@@ -64,7 +64,7 @@ func FindAllScores(limit int, offset int, periodFrom time.Time) ([]PlayerScore, 
 			return nil, err
 		}
 	} else {
-		stmt, err = db.Prepare("SELECT DISTINCT(name) id, name, score, updated_at, created_at FROM player_score ORDER BY score DESC LIMIT ? OFFSET ?")
+		stmt, err = db.Prepare("SELECT id, name, score, updated_at, created_at FROM player_score GROUP BY name ORDER BY score DESC LIMIT ? OFFSET ?")
 		if err != nil {
 			return nil, err
 		}
@@ -75,14 +75,101 @@ func FindAllScores(limit int, offset int, periodFrom time.Time) ([]PlayerScore, 
 		}
 	}
 
+	result := buildScoresFromSQLResult(rowList)
+
+	return result, nil
+}
+
+func FindScoresAroundName(name string, pageLimit int) ([]PlayerScore, error)  {
+	lookupScore, err := FindScoreByName(name)
+
+	if *lookupScore == (PlayerScore{}) || err != nil {
+		return nil, err
+	}
+	lookupScore.Rank, err = lookupScore.FindRank()
+	if err != nil {
+		return nil, err
+	}
+
+	var rowList *sql.Rows
+	var stmt *sql.Stmt
+
+	db, err := GetDBConnection()
+	if err != nil {
+		return nil, err
+	}
+
+	stmt, err = db.Prepare("SELECT id, name, score, updated_at, created_at FROM player_score WHERE score <= ? AND name != ? GROUP BY name ORDER BY score DESC LIMIT ?")
+	if err != nil {
+		return nil, err
+	}
+
+	rowList, err = stmt.Query(lookupScore.Score, name, pageLimit)
+	if err != nil {
+		return nil, err
+	}
+
+	scoresBelowLookup := buildScoresFromSQLResult(rowList)
+	for i, _ := range scoresBelowLookup {
+		scoresBelowLookup[i].Rank = lookupScore.Rank + i + 1
+	}
+
+	stmt, err = db.Prepare("SELECT id, name, score, updated_at, created_at FROM player_score WHERE score > ? AND name != ? GROUP BY name ORDER BY score DESC LIMIT ?")
+	if err != nil {
+		return nil, err
+	}
+
+	rowList, err = stmt.Query(lookupScore.Score, name, pageLimit)
+	if err != nil {
+		return nil, err
+	}
+
+	scoresAboveLookup := buildScoresFromSQLResult(rowList)
+	for i, _ := range scoresAboveLookup {
+		scoresAboveLookup[i].Rank = lookupScore.Rank - len(scoresAboveLookup) + i
+	}
+	var result []PlayerScore
+	scoresBelowCount := len(scoresBelowLookup)
+	scoresAboveCount := len(scoresAboveLookup)
+
+	lowerBound, upperBound := calculateScoreRange(scoresBelowCount, scoresAboveCount, pageLimit)
+	result = append(scoresAboveLookup[len(scoresAboveLookup) - upperBound:], *lookupScore)
+	result = append(result, scoresBelowLookup[:lowerBound]...)
+
+	return result, nil
+}
+
+func calculateScoreRange(below int, above int, total int) (int, int) {
+	var lowerBound int
+	var upperBound int
+
+	limit := (total - 1) / 2
+
+	if below > limit && above > limit {
+		lowerBound = limit
+		upperBound = total - limit - 1
+	} else if below <= limit && above <= limit {
+		lowerBound = below
+		upperBound = above
+	} else if below <= limit && above >= limit {
+		lowerBound = below
+		upperBound = total - 1 - below
+	} else if below >= limit && above <= limit {
+		upperBound = above
+		lowerBound = total - 1 - above
+	}
+
+	return lowerBound, upperBound
+}
+
+func buildScoresFromSQLResult(rowList *sql.Rows) []PlayerScore {
 	var result []PlayerScore
 	for rowList.Next() {
 		var score PlayerScore
 		rowList.Scan(&score.Id, &score.Name, &score.Score, &score.UpdatedAt, &score.CreatedAt)
 		result = append(result, score)
 	}
-
-	return result, nil
+	return result
 }
 
 func FindScoreCount() (int, error) {
@@ -91,7 +178,7 @@ func FindScoreCount() (int, error) {
 		return 0, err
 	}
 
-	rowList, err := db.Query("SELECT COUNT(*) FROM player_score GROUP BY name")
+	rowList, err := db.Query("SELECT COUNT(DISTINCT name) FROM player_score")
 	if err != nil {
 		return 0, err
 	}
@@ -153,4 +240,25 @@ func (receiver PlayerScore) Save() (error) {
 
 		return err
 	}
+}
+
+func (receiver PlayerScore) FindRank() (int, error) {
+	db, err := GetDBConnection()
+	if err != nil {
+		return 0, err
+	}
+
+	stmt, err := db.Prepare("SELECT COUNT(DISTINCT name) FROM player_score WHERE score > ? AND name != ?")
+	if err != nil {
+		return 0, err
+	}
+
+	rowList, err := stmt.Query(receiver.Score, receiver.Name)
+
+	var result int
+	for rowList.Next() {
+		rowList.Scan(&result)
+	}
+
+	return result + 1, nil
 }

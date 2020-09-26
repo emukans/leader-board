@@ -14,6 +14,7 @@ import (
 type leaderBoardResponse struct {
 	Results []model.PlayerScore `json:"results"`
 	NextPage int `json:"next_page"`
+	AroundMe []model.PlayerScore `json:"around_me"`
 }
 
 const (
@@ -58,6 +59,18 @@ func LeaderBoard(writer http.ResponseWriter, request *http.Request) {
 		})
 	}
 
+	sentName := parseName(request)
+	if sentName != "" {
+		isNameInTheList := isNameInScoreList(response.Results, sentName)
+		if !isNameInTheList {
+			response.AroundMe, err = model.FindScoresAroundName(sentName, limit)
+			if err != nil {
+				HandleInternalErr(err, writer)
+				return
+			}
+		}
+	}
+
 	scoreCount, err := model.FindScoreCount()
 	if err != nil {
 		HandleInternalErr(err, writer)
@@ -77,6 +90,22 @@ func LeaderBoard(writer http.ResponseWriter, request *http.Request) {
 
 	writer.WriteHeader(http.StatusOK)
 	writer.Write(payload)
+}
+
+func isNameInScoreList(scoreList []model.PlayerScore, sentName string) bool {
+	isNameInTheList := false
+	for _, score := range scoreList {
+		if score.Name == sentName {
+			isNameInTheList = true
+		}
+	}
+	return isNameInTheList
+}
+
+func parseName(request *http.Request) string {
+	name := request.URL.Query().Get("name")
+
+	return name
 }
 
 func parsePageNumber(request *http.Request) (int, error) {

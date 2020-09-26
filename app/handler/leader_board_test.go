@@ -178,6 +178,83 @@ func TestMonthlyPeriod(test *testing.T) {
 	}
 }
 
+func TestExistingName(test *testing.T) {
+	limit := 15
+	seedDb(limit)
+
+	defer model.DeleteScores()
+
+	request, err := http.NewRequest("GET", "/api/v1/leader-board", nil)
+	if err != nil {
+		test.Fatal(err)
+	}
+
+	requestRecorder := httptest.NewRecorder()
+	handler := http.HandlerFunc(LeaderBoard)
+
+	query := request.URL.Query()
+	query.Add("name", "Dogge")
+	request.URL.RawQuery = query.Encode()
+
+	handler.ServeHTTP(requestRecorder, request)
+
+	if status := requestRecorder.Code; status != http.StatusOK {
+		test.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	jsonBody := leaderBoardResponse{}
+	err = json.NewDecoder(requestRecorder.Body).Decode(&jsonBody)
+
+	if err != nil {
+		test.Fatal(err)
+	}
+
+	expectedResultCount := 10
+	if resultCount := len(jsonBody.AroundMe); resultCount != expectedResultCount {
+		test.Errorf("handler returned wrong body: around_me should contain %d scores, but returned %d", expectedResultCount, resultCount)
+	}
+
+	if !isNameInScoreList(jsonBody.AroundMe, "Dogge") {
+		test.Errorf("handler returned wrong body: Dogge is not in the around_me list")
+	}
+}
+
+func TestNotExistingName(test *testing.T) {
+	limit := 15
+	seedDb(limit)
+
+	defer model.DeleteScores()
+
+	request, err := http.NewRequest("GET", "/api/v1/leader-board", nil)
+	if err != nil {
+		test.Fatal(err)
+	}
+
+	requestRecorder := httptest.NewRecorder()
+	handler := http.HandlerFunc(LeaderBoard)
+
+	query := request.URL.Query()
+	query.Add("name", "NotExists")
+	request.URL.RawQuery = query.Encode()
+
+	handler.ServeHTTP(requestRecorder, request)
+
+	if status := requestRecorder.Code; status != http.StatusOK {
+		test.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	jsonBody := leaderBoardResponse{}
+	err = json.NewDecoder(requestRecorder.Body).Decode(&jsonBody)
+
+	if err != nil {
+		test.Fatal(err)
+	}
+
+	print(len(jsonBody.AroundMe))
+	if jsonBody.AroundMe != nil {
+		test.Errorf("handler returned wrong body: around_me should be nil")
+	}
+}
 
 func seedDb(limit int) {
 	model.DeleteScores()
@@ -185,7 +262,7 @@ func seedDb(limit int) {
 	scoreList := []model.PlayerScore {
 		{
 			Name:  "Cat",
-			Score: 1,
+			Score: 31,
 			UpdatedAt: time.Now().AddDate(0, -1, 0),
 		},
 		{
@@ -210,7 +287,7 @@ func seedDb(limit int) {
 		},
 		{
 			Name:  "Beethoven",
-			Score: 12,
+			Score: 21,
 			UpdatedAt: time.Now().AddDate(0, -1, 0),
 		},
 		{
