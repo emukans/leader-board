@@ -43,7 +43,11 @@ func LeaderBoard(writer http.ResponseWriter, request *http.Request) {
 	}
 	offset := (pageNumber - 1) * limit
 
-	scoreList := model.FindAllScores(limit, offset, periodFrom)
+	scoreList, err := model.FindAllScores(limit, offset, periodFrom)
+	if err != nil {
+		HandleInternalErr(err, writer)
+		return
+	}
 	response := leaderBoardResponse{Results: []model.PlayerScore{}, NextPage: 0}
 
 	for rank, score := range scoreList {
@@ -54,7 +58,11 @@ func LeaderBoard(writer http.ResponseWriter, request *http.Request) {
 		})
 	}
 
-	scoreCount := model.FindScoreCount()
+	scoreCount, err := model.FindScoreCount()
+	if err != nil {
+		HandleInternalErr(err, writer)
+		return
+	}
 
 	if scoreCount > (offset + limit) {
 		response.NextPage = pageNumber + 1

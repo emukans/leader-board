@@ -19,24 +19,44 @@ const (
 	pageLimit = "page_limit"
 )
 
-func FindAuthToken() string {
-	return FindConfigByName(authToken).Value
+func FindAuthToken() (string, error) {
+	config, err := FindConfigByName(authToken)
+	if err != nil {
+		return "", err
+	}
+	return config.Value, nil
 }
 
 func FindPageLimit() (int, error) {
-	return strconv.Atoi(FindConfigByName(pageLimit).Value)
+	config, err := FindConfigByName(pageLimit)
+	if err != nil {
+		return 0, err
+	}
+
+	return strconv.Atoi(config.Value)
 }
 
-func FindConfigByName(name string) *Config {
-	stmt, err := DB.Prepare("SELECT id, name, value, updated_at, created_at FROM config WHERE name = ? LIMIT 1")
-	checkErr(err)
-	rowList, err := stmt.Query(name)
-	checkErr(err)
+func FindConfigByName(name string) (*Config, error) {
+	db, err := GetDBConnection()
+	if err != nil {
+		return nil, err
+	}
+	stmt, err := db.Prepare("SELECT id, name, value, updated_at, created_at FROM config WHERE name = ? LIMIT 1")
 
+	if err != nil {
+		println(err)
+		return nil, err
+	}
+
+	rowList, err := stmt.Query(name)
+	if err != nil {
+		return nil, err
+	}
 	var result Config
+
 	for rowList.Next() {
 		rowList.Scan(&result.Id, &result.Name, &result.Value, &result.UpdatedAt, &result.CreatedAt)
 	}
 
-	return &result
+	return &result, nil
 }

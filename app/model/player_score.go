@@ -15,39 +15,64 @@ type PlayerScore struct {
 }
 
 
-func (receiver PlayerScore) Delete() sql.Result  {
-	stmt, err := DB.Prepare("DELETE FROM player_score WHERE id = ?")
-	checkErr(err)
+func (receiver PlayerScore) Delete() error  {
+	db, err := GetDBConnection()
+	if err != nil {
+		return err
+	}
+	var stmt *sql.Stmt
+	stmt, err = db.Prepare("DELETE FROM player_score WHERE id = ?")
+	if err != nil {
+		return err
+	}
 
-	result, err := stmt.Exec(receiver.Id)
-	checkErr(err)
+	_, err = stmt.Exec(receiver.Id)
 
-	return result
+	return err
 }
 
 
-func DeleteScores() {
-	_, err := DB.Exec("DELETE FROM player_score")
-	checkErr(err)
+func DeleteScores() error {
+	db, err := GetDBConnection()
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec("DELETE FROM player_score")
+
+	return err
 }
 
-func FindAllScores(limit int, offset int, periodFrom time.Time) []PlayerScore  {
+func FindAllScores(limit int, offset int, periodFrom time.Time) ([]PlayerScore, error)  {
 	var rowList *sql.Rows
 	var err error
 	var stmt *sql.Stmt
 
+	db, err := GetDBConnection()
+	if err != nil {
+		return nil, err
+	}
+
 	if !periodFrom.IsZero() {
-		stmt, err = DB.Prepare("SELECT id, name, score, updated_at, created_at FROM player_score WHERE updated_at >= ? ORDER BY score DESC LIMIT ? OFFSET ?")
-		checkErr(err)
+		stmt, err = db.Prepare("SELECT DISTINCT(name) id, name, score, updated_at, created_at FROM player_score WHERE updated_at >= ? ORDER BY score DESC LIMIT ? OFFSET ?")
+		if err != nil {
+			return nil, err
+		}
 
 		rowList, err = stmt.Query(periodFrom, limit, offset)
-		checkErr(err)
+		if err != nil {
+			return nil, err
+		}
 	} else {
-		stmt, err = DB.Prepare("SELECT id, name, score, updated_at, created_at FROM player_score ORDER BY score DESC LIMIT ? OFFSET ?")
-		checkErr(err)
+		stmt, err = db.Prepare("SELECT DISTINCT(name) id, name, score, updated_at, created_at FROM player_score ORDER BY score DESC LIMIT ? OFFSET ?")
+		if err != nil {
+			return nil, err
+		}
 
 		rowList, err = stmt.Query(limit, offset)
-		checkErr(err)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var result []PlayerScore
@@ -57,51 +82,75 @@ func FindAllScores(limit int, offset int, periodFrom time.Time) []PlayerScore  {
 		result = append(result, score)
 	}
 
-	return result
+	return result, nil
 }
 
-func FindScoreCount() int {
-	rowList, err := DB.Query("SELECT COUNT(*) FROM player_score")
-	checkErr(err)
+func FindScoreCount() (int, error) {
+	db, err := GetDBConnection()
+	if err != nil {
+		return 0, err
+	}
+
+	rowList, err := db.Query("SELECT COUNT(*) FROM player_score GROUP BY name")
+	if err != nil {
+		return 0, err
+	}
 
 	var result int
 	for rowList.Next() {
 		rowList.Scan(&result)
 	}
 
-	return result
+	return result, nil
 }
 
-func FindScoreByName(name string) *PlayerScore  {
-	stmt, err := DB.Prepare("SELECT id, name, score, updated_at, created_at FROM player_score WHERE name = ?")
-	checkErr(err)
+func FindScoreByName(name string) (*PlayerScore, error)  {
+	db, err := GetDBConnection()
+	if err != nil {
+		return nil, err
+	}
+
+	stmt, err := db.Prepare("SELECT id, name, score, updated_at, created_at FROM player_score WHERE name = ? ORDER BY score DESC LIMIT 1")
+	if err != nil {
+		return nil, err
+	}
+
 	rowList, err := stmt.Query(name)
-	checkErr(err)
+	if err != nil {
+		return nil, err
+	}
 
 	var result PlayerScore
 	for rowList.Next() {
 		rowList.Scan(&result.Id, &result.Name, &result.Score, &result.UpdatedAt, &result.CreatedAt)
 	}
 
-	return &result
+	return &result, nil
 }
 
-func (receiver PlayerScore) Save() sql.Result {
+func (receiver PlayerScore) Save() (error) {
+	db, err := GetDBConnection()
+	if err != nil {
+		return err
+	}
+
 	if receiver.UpdatedAt.IsZero() {
-		stmt, err := DB.Prepare("INSERT INTO player_score (name, score) VALUES ($1, $2) ON CONFLICT(name) DO UPDATE SET score = $2 WHERE name = $1 AND score < $2")
-		checkErr(err)
+		stmt, err := db.Prepare("INSERT INTO player_score (name, score) VALUES ($1, $2)")
+		if err != nil {
+			return err
+		}
 
-		result, err := stmt.Exec(receiver.Name, receiver.Score)
-		checkErr(err)
+		_, err = stmt.Exec(receiver.Name, receiver.Score)
 
-		return result
+		return err
 	} else {
-		stmt, err := DB.Prepare("INSERT INTO player_score (name, score, updated_at) VALUES ($1, $2, $3)")
-		checkErr(err)
+		stmt, err := db.Prepare("INSERT INTO player_score (name, score, updated_at) VALUES ($1, $2, $3)")
+		if err != nil {
+			return err
+		}
 
-		result, err := stmt.Exec(receiver.Name, receiver.Score, receiver.UpdatedAt)
-		checkErr(err)
+		_, err = stmt.Exec(receiver.Name, receiver.Score, receiver.UpdatedAt)
 
-		return result
+		return err
 	}
 }

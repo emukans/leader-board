@@ -9,7 +9,11 @@ import (
 )
 
 func Seed() {
-	seedPath := model.RootPath() + "/../db/seed/player_score.json"
+	workingDir, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	seedPath := workingDir + "/db/seed/player_score.json"
 	jsonFile, err := os.Open(seedPath)
 	if err != nil {
 		panic(err)

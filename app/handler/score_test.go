@@ -33,8 +33,8 @@ func TestSuccessInsert(test *testing.T) {
 			status, http.StatusNoContent)
 	}
 
-	addedScore := model.FindScoreByName("foo")
-	if addedScore == nil {
+	addedScore, err := model.FindScoreByName("foo")
+	if addedScore == nil || err != nil {
 		test.Error("user is not inserted")
 	}
 
@@ -111,8 +111,8 @@ func TestScoreIsLessThanExisting(test *testing.T) {
 			status, http.StatusNoContent)
 	}
 
-	addedScore := model.FindScoreByName("Foo")
-	if addedScore.Score != 10 {
+	addedScore, err := model.FindScoreByName("Foo")
+	if addedScore.Score != 10 || err != nil {
 		test.Error("user score should not be updated")
 	}
 }
@@ -144,8 +144,8 @@ func TestScoreIsGreaterThanExisting(test *testing.T) {
 			status, http.StatusNoContent)
 	}
 
-	addedScore := model.FindScoreByName("Foo")
-	if addedScore.Score != 15 {
+	addedScore, err := model.FindScoreByName("Foo")
+	if addedScore.Score != 15 || err != nil {
 		test.Error("user score should be updated")
 	}
 }
