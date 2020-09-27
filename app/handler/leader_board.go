@@ -115,6 +115,9 @@ func parsePageNumber(request *http.Request) (int, error) {
 	page := request.URL.Query().Get("page")
 	if page != "" {
 		pageNumber, err = strconv.Atoi(page)
+		if pageNumber <= 0 {
+			pageNumber = 1
+		}
 		if err != nil {
 			return pageNumber, err
 		}
