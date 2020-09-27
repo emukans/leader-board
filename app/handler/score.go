@@ -9,16 +9,18 @@ import (
 
 func Score(writer http.ResponseWriter, request *http.Request) {
 	var payload model.PlayerScore
-	err := json.NewDecoder(request.Body).Decode(&payload)
-	if err != nil {
-		HandleInternalErr(err, writer)
-		return
-	}
+	ErrWriter{writer: writer}.Then(func(self ErrWriter) ErrWriter {
+		self.err = json.NewDecoder(request.Body).Decode(&payload)
 
-	model.PlayerScore{
-		Name:  payload.Name,
-		Score: payload.Score,
-	}.Save()
+		return self
+	}).Then(func(self ErrWriter) ErrWriter {
+		model.PlayerScore{
+			Name:  payload.Name,
+			Score: payload.Score,
+		}.Save()
 
-	writer.WriteHeader(http.StatusNoContent)
+		writer.WriteHeader(http.StatusNoContent)
+
+		return self
+	}).MaybeHandleInternalError()
 }

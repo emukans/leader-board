@@ -2,11 +2,8 @@ package handler
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"leader-board/app/model"
 	"net/http"
-	"strconv"
 	"time"
 )
 
@@ -17,125 +14,80 @@ type leaderBoardResponse struct {
 	AroundMe []model.PlayerScore `json:"around_me"`
 }
 
-const (
-	MonthlyLeaderBoardPeriod = "monthly"
-	AllTimeLeaderBoardPeriod = "all-time"
-)
 
+// I have to introduce a context struct, because golang don't have generics or inheritance
+type leaderBoardContext struct {
+	pageNumber int
+	limit int
+	offset int
+	totalScoreCount int
+	periodFrom time.Time
+	sentName string
+	payload []byte
+}
 
 func LeaderBoard(writer http.ResponseWriter, request *http.Request) {
-	pageNumber, err := parsePageNumber(request)
-	if err != nil {
-		http.Error(writer, "Page number is not valid", http.StatusBadRequest)
-		return
-	}
+	context := leaderBoardContext{}
+	response := leaderBoardResponse{}
 
-	var periodFrom time.Time
-	periodFrom, err = parsePeriod(request)
-	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadRequest)
-		return
-	}
+	ErrWriter{writer: writer}.Then(func(self ErrWriter) ErrWriter {
+		pageNumber, err := parsePageNumber(request)
+		self.err = err
+		context.pageNumber = pageNumber
 
-	limit, err := model.FindPageLimit()
-	if err != nil {
-		HandleInternalErr(err, writer)
-		return
-	}
-	offset := (pageNumber - 1) * limit
+		return self
+	}).Then(func(self ErrWriter) ErrWriter {
+		periodFrom, err := parsePeriod(request)
+		context.periodFrom = periodFrom
+		self.err = err
 
-	scoreList, err := model.FindAllScores(limit, offset, periodFrom)
-	if err != nil {
-		HandleInternalErr(err, writer)
-		return
-	}
-	response := leaderBoardResponse{Results: []model.PlayerScore{}, NextPage: 0}
+		return self
+	}).MaybeHandleError(func(self ErrWriter) ErrWriter {
+		http.Error(writer, self.err.Error(), http.StatusBadRequest)
 
-	for rank, score := range scoreList {
-		response.Results = append(response.Results, model.PlayerScore{
-			Name:  score.Name,
-			Score: score.Score,
-			Rank:  offset + rank + 1,
-		})
-	}
+		return self
+	}).Then(func(self ErrWriter) ErrWriter {
+		context.limit, self.err = model.FindPageLimit()
 
-	sentName := parseName(request)
-	if sentName != "" {
-		isNameInTheList := isNameInScoreList(response.Results, sentName)
-		if !isNameInTheList {
-			response.AroundMe, err = model.FindScoresAroundName(sentName, limit)
-			if err != nil {
-				HandleInternalErr(err, writer)
-				return
+		return self
+	}).Then(func(self ErrWriter) ErrWriter {
+		context.offset = (context.pageNumber - 1) * context.limit
+
+		response.Results, self.err = model.FindAllScores(context.limit, context.offset, context.periodFrom)
+
+		return self
+	}).Then(func(self ErrWriter) ErrWriter {
+		for rank, _ := range response.Results {
+			response.Results[rank].Rank = context.offset + rank + 1
+		}
+
+		context.sentName = parseName(request)
+		if context.sentName != "" {
+			isNameInTheList := isNameInScoreList(response.Results, context.sentName)
+			if !isNameInTheList {
+				response.AroundMe, self.err = model.FindScoresAroundName(context.sentName, context.limit)
 			}
 		}
-	}
 
-	scoreCount, err := model.FindScoreCount()
-	if err != nil {
-		HandleInternalErr(err, writer)
-		return
-	}
+		return self
+	}).Then(func(self ErrWriter) ErrWriter {
+		context.totalScoreCount, self.err = model.FindScoreCount()
 
-	if scoreCount > (offset + limit) {
-		response.NextPage = pageNumber + 1
-	}
-
-	writer.Header().Set("Content-Type", "application/json")
-	payload, err := json.Marshal(response)
-	if err != nil {
-		HandleInternalErr(err, writer)
-		return
-	}
-
-	writer.WriteHeader(http.StatusOK)
-	writer.Write(payload)
-}
-
-func isNameInScoreList(scoreList []model.PlayerScore, sentName string) bool {
-	isNameInTheList := false
-	for _, score := range scoreList {
-		if score.Name == sentName {
-			isNameInTheList = true
+		return self
+	}).Then(func(self ErrWriter) ErrWriter {
+		if context.totalScoreCount > (context.offset + context.limit) {
+			response.NextPage = context.pageNumber + 1
 		}
-	}
-	return isNameInTheList
-}
+		return self
+	}).Then(func(self ErrWriter) ErrWriter {
+		self.writer.Header().Set("Content-Type", "application/json")
+		context.payload, self.err = json.Marshal(response)
 
-func parseName(request *http.Request) string {
-	name := request.URL.Query().Get("name")
+		return self
+	}).Then(func(self ErrWriter) ErrWriter {
+		writer.WriteHeader(http.StatusOK)
+		writer.Write(context.payload)
 
-	return name
-}
-
-func parsePageNumber(request *http.Request) (int, error) {
-	pageNumber := 1
-	var err error
-
-	page := request.URL.Query().Get("page")
-	if page != "" {
-		pageNumber, err = strconv.Atoi(page)
-		if pageNumber <= 0 {
-			pageNumber = 1
-		}
-		if err != nil {
-			return pageNumber, err
-		}
-	}
-	return pageNumber, nil
-}
-
-func parsePeriod(request *http.Request) (time.Time, error) {
-	periodParameter := request.URL.Query().Get("period")
-
-	var periodDate time.Time
-	var err error
-
-	if periodParameter == MonthlyLeaderBoardPeriod {
-		periodDate = time.Now().AddDate(0, -1, 0)
-	} else if periodParameter != "" && periodParameter != AllTimeLeaderBoardPeriod {
-		err = errors.New(fmt.Sprintf("Invalid period query parameter. Period should be either %s or %s", AllTimeLeaderBoardPeriod, MonthlyLeaderBoardPeriod))
-	}
-
-	return periodDate, err
+		return self
+	}).MaybeHandleInternalError()
 }
