@@ -6,16 +6,15 @@ import (
 )
 
 type PlayerScore struct {
-	Id int `json:"-"`
-	Name string `json:"name"`
-	Score int `json:"score"`
-	Rank int `json:"rank"`
+	Id        int       `json:"-"`
+	Name      string    `json:"name"`
+	Score     int       `json:"score"`
+	Rank      int       `json:"rank"`
 	UpdatedAt time.Time `json:"-"`
 	CreatedAt time.Time `json:"-"`
 }
 
-
-func (receiver PlayerScore) Delete() error  {
+func (receiver PlayerScore) Delete() error {
 	db, err := GetDBConnection()
 	if err != nil {
 		return err
@@ -31,7 +30,6 @@ func (receiver PlayerScore) Delete() error  {
 	return err
 }
 
-
 func DeleteScores() error {
 	db, err := GetDBConnection()
 	if err != nil {
@@ -43,7 +41,7 @@ func DeleteScores() error {
 	return err
 }
 
-func FindAllScores(limit int, offset int, periodFrom time.Time) ([]PlayerScore, error)  {
+func FindAllScores(limit int, offset int, periodFrom time.Time) ([]PlayerScore, error) {
 	var rowList *sql.Rows
 	var err error
 	var stmt *sql.Stmt
@@ -80,7 +78,7 @@ func FindAllScores(limit int, offset int, periodFrom time.Time) ([]PlayerScore, 
 	return result, nil
 }
 
-func FindScoresAroundName(name string, pageLimit int) ([]PlayerScore, error)  {
+func FindScoresAroundName(name string, pageLimit int) ([]PlayerScore, error) {
 	lookupScore, err := FindScoreByName(name)
 
 	if *lookupScore == (PlayerScore{}) || err != nil {
@@ -133,7 +131,7 @@ func FindScoresAroundName(name string, pageLimit int) ([]PlayerScore, error)  {
 	scoresAboveCount := len(scoresAboveLookup)
 
 	lowerBound, upperBound := calculateScoreRange(scoresBelowCount, scoresAboveCount, pageLimit)
-	result = append(scoresAboveLookup[len(scoresAboveLookup) - upperBound:], *lookupScore)
+	result = append(scoresAboveLookup[len(scoresAboveLookup)-upperBound:], *lookupScore)
 	result = append(result, scoresBelowLookup[:lowerBound]...)
 
 	return result, nil
@@ -158,7 +156,7 @@ func FindScoreCount() (int, error) {
 	return result, nil
 }
 
-func FindScoreByName(name string) (*PlayerScore, error)  {
+func FindScoreByName(name string) (*PlayerScore, error) {
 	db, err := GetDBConnection()
 	if err != nil {
 		return nil, err
@@ -182,7 +180,7 @@ func FindScoreByName(name string) (*PlayerScore, error)  {
 	return &result, nil
 }
 
-func (receiver PlayerScore) Save() (error) {
+func (receiver PlayerScore) Save() error {
 	db, err := GetDBConnection()
 	if err != nil {
 		return err

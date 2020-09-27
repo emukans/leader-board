@@ -6,13 +6,12 @@ import (
 )
 
 type Config struct {
-	Id int
-	Name string
-	Value string
+	Id        int
+	Name      string
+	Value     string
 	UpdatedAt time.Time
 	CreatedAt time.Time
 }
-
 
 const (
 	authToken = "auth_token"

@@ -6,7 +6,6 @@ import (
 	"net/http"
 )
 
-
 func Score(writer http.ResponseWriter, request *http.Request) {
 	var payload model.PlayerScore
 	ErrWriter{writer: writer}.Then(func(self ErrWriter) ErrWriter {

@@ -65,7 +65,7 @@ func TestFailedAuth(test *testing.T) {
 }
 
 func TestWrongHTTPMethod(test *testing.T) {
-	methodList := []string {"GET", "PATCH", "DELETE", "HEAD"}
+	methodList := []string{"GET", "PATCH", "DELETE", "HEAD"}
 	for _, method := range methodList {
 		request, error := http.NewRequest(method, "/api/v1/player/score", nil)
 		if error != nil {
@@ -79,7 +79,7 @@ func TestWrongHTTPMethod(test *testing.T) {
 
 		if status := requestRecorder.Code; status != http.StatusMethodNotAllowed {
 			test.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusMethodNotAllowed)
+				status, http.StatusMethodNotAllowed)
 		}
 	}
 }

@@ -10,7 +10,6 @@ import (
 
 var db *sql.DB
 
-
 func dbPath() string {
 	_, baseDir, _, _ := runtime.Caller(0)
 	dir := path.Join(path.Dir(baseDir))

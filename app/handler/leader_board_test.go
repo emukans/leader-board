@@ -10,7 +10,6 @@ import (
 	"time"
 )
 
-
 func TestEmptyResponse(test *testing.T) {
 	model.DeleteScores()
 
@@ -110,14 +109,13 @@ func TestMultiPageSeededDb(test *testing.T) {
 		if err != nil {
 			test.Fatal(err)
 		}
-		if jsonBody.NextPage != page + 1 && jsonBody.NextPage != 0 {
-			test.Errorf("handler returned wrong body: next_page should be either %d or 0", page + 1)
+		if jsonBody.NextPage != page+1 && jsonBody.NextPage != 0 {
+			test.Errorf("handler returned wrong body: next_page should be either %d or 0", page+1)
 		}
 
 		page = jsonBody.NextPage
 	}
 }
-
 
 func TestFailedPeriod(test *testing.T) {
 	request, err := http.NewRequest("GET", "/api/v1/leader-board", nil)
@@ -259,45 +257,45 @@ func TestNotExistingName(test *testing.T) {
 func seedDb(limit int) {
 	model.DeleteScores()
 
-	scoreList := []model.PlayerScore {
+	scoreList := []model.PlayerScore{
 		{
-			Name:  "Cat",
-			Score: 31,
+			Name:      "Cat",
+			Score:     31,
 			UpdatedAt: time.Now().AddDate(0, -1, 0),
 		},
 		{
-			Name:  "Dog",
-			Score: 12,
+			Name:      "Dog",
+			Score:     12,
 			UpdatedAt: time.Now().AddDate(0, -1, 0),
 		},
 		{
-			Name:  "Dogge",
-			Score: 11,
+			Name:      "Dogge",
+			Score:     11,
 			UpdatedAt: time.Now().AddDate(0, -1, 0),
 		},
 		{
-			Name:  "Banye, The Omg Cat",
-			Score: 31,
+			Name:      "Banye, The Omg Cat",
+			Score:     31,
 			UpdatedAt: time.Now().AddDate(0, -1, 0),
 		},
 		{
-			Name:  "Puss in boots",
-			Score: 63,
+			Name:      "Puss in boots",
+			Score:     63,
 			UpdatedAt: time.Now().AddDate(0, -1, 0),
 		},
 		{
-			Name:  "Beethoven",
-			Score: 21,
+			Name:      "Beethoven",
+			Score:     21,
 			UpdatedAt: time.Now().AddDate(0, -1, 0),
 		},
 		{
-			Name:  "Toto",
-			Score: 155,
+			Name:      "Toto",
+			Score:     155,
 			UpdatedAt: time.Now().AddDate(0, -1, 0),
 		},
 		{
-			Name:  "Hund von baskerville",
-			Score: 312,
+			Name:      "Hund von baskerville",
+			Score:     312,
 			UpdatedAt: time.Now().AddDate(0, -1, 0),
 		},
 		{
@@ -333,4 +331,3 @@ func seedDb(limit int) {
 		score.Save()
 	}
 }
-

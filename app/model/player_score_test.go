@@ -52,7 +52,6 @@ func TestScoreRangeCalculation(test *testing.T) {
 		test.Errorf("score bounds calculation failure: should return (%d, %d), but returned (%d, %d)", expectedBelow, expectedAbove, below, above)
 	}
 
-
 	below, above = calculateScoreRange(10, 10, 7)
 	expectedBelow = 3
 	expectedAbove = 3

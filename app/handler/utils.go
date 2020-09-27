@@ -6,10 +6,9 @@ import (
 	"net/http"
 )
 
-
 type ErrWriter struct {
-	writer http.ResponseWriter
-	err error
+	writer         http.ResponseWriter
+	err            error
 	isErrorHandled bool
 }
 
@@ -31,7 +30,7 @@ func (receiver ErrWriter) MaybeHandleError(callback func(ErrWriter) ErrWriter) E
 	return receiver
 }
 
-func (receiver ErrWriter) MaybeHandleInternalError() ErrWriter  {
+func (receiver ErrWriter) MaybeHandleInternalError() ErrWriter {
 	return receiver.MaybeHandleError(func(ErrWriter) ErrWriter {
 		if !receiver.isErrorHandled {
 			http.Error(receiver.writer, "Oops...something went wrong", http.StatusInternalServerError)

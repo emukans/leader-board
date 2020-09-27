@@ -7,23 +7,21 @@ import (
 	"time"
 )
 
-
 type leaderBoardResponse struct {
-	Results []model.PlayerScore `json:"results"`
-	NextPage int `json:"next_page"`
+	Results  []model.PlayerScore `json:"results"`
+	NextPage int                 `json:"next_page"`
 	AroundMe []model.PlayerScore `json:"around_me"`
 }
 
-
 // I have to introduce a context struct, because golang don't have generics or inheritance
 type leaderBoardContext struct {
-	pageNumber int
-	limit int
-	offset int
+	pageNumber      int
+	limit           int
+	offset          int
 	totalScoreCount int
-	periodFrom time.Time
-	sentName string
-	payload []byte
+	periodFrom      time.Time
+	sentName        string
+	payload         []byte
 }
 
 func LeaderBoard(writer http.ResponseWriter, request *http.Request) {
